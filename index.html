@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文化祭限定！Memory Touch 10</title>
+    <title>文化祭限定！Memory Touch</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -28,17 +28,22 @@
             font-weight: bold;
         }
         
-        /* ⚙️ 時間設定のUIスタイル */
+        /* ⚙️ 設定パネルのスタイル調整 */
         .config-panel {
             background-color: #fff;
-            padding: 10px 20px;
+            padding: 15px 25px;
             border-radius: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             margin-bottom: 20px;
             display: flex;
             flex-direction: column;
+            gap: 12px;
+        }
+        .config-row {
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
         }
         .config-label {
             font-size: 14px;
@@ -49,11 +54,14 @@
             color: #e74c3c;
             font-size: 12px;
             font-weight: bold;
+            margin-left: 5px;
         }
         .slider-container {
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 12px;
+            color: #777;
         }
         input[type="range"] {
             width: 150px;
@@ -101,14 +109,13 @@
             color: white !important;
             border-color: #c0392b !important;
         }
-        /* 答え合わせで強制的に開いたマスの色 */
         .cell.revealed {
             background-color: #fff !important;
             color: #34495e !important;
             border-color: #95a5a6 !important;
         }
 
-        /* 画面いっぱいに表示する巨大な○×用レイヤー（後ろが透けるように半透明に調整） */
+        /* 画面いっぱいに表示する巨大な○×用レイヤー */
         .result-overlay {
             position: absolute;
             top: 0;
@@ -118,7 +125,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: rgba(240, 242, 245, 0.6); /* 0.85から0.6にして透けやすくしたよ */
+            background-color: rgba(240, 242, 245, 0.6);
             pointer-events: none;
             opacity: 0;
             transform: scale(0.5);
@@ -160,18 +167,32 @@
 </head>
 <body>
 
-    <h1>Memory Touch 10</h1>
+    <h1>Memory Touch</h1>
     <div class="instruction" id="statusText">設定してスタートを押してね</div>
     
     <div class="config-panel">
-        <div class="config-label">
-            表示時間: <span id="timeValue">3.0</span> 秒
-            <span class="recommend">（おすすめは3.0秒！）</span>
+        <div class="config-row">
+            <div class="config-label">
+                表示時間: <span id="timeValue">3.0</span> 秒
+                <span class="recommend">（おすすめは3.0秒！）</span>
+            </div>
+            <div class="slider-container">
+                <span>0.1秒</span>
+                <input type="range" id="timeLimit" min="0.1" max="10.0" step="0.1" value="3.0">
+                <span>10.0秒</span>
+            </div>
         </div>
-        <div class="slider-container">
-            <span>0.1秒</span>
-            <input type="range" id="timeLimit" min="0.1" max="10.0" step="0.1" value="3.0">
-            <span>10.0秒</span>
+
+        <div class="config-row">
+            <div class="config-label">
+                数字の数: <span id="countValue">6</span> 個
+                <span class="recommend">（おすすめは6！）</span>
+            </div>
+            <div class="slider-container">
+                <span>1個</span>
+                <input type="range" id="countLimit" min="1" max="10" step="1" value="6">
+                <span>10個</span>
+            </div>
         </div>
     </div>
     
@@ -194,20 +215,27 @@
         const statusText = document.getElementById('statusText');
         const timeLimitInput = document.getElementById('timeLimit');
         const timeValue = document.getElementById('timeValue');
+        const countLimitInput = document.getElementById('countLimit');
+        const countValue = document.getElementById('countValue');
         const startBtn = document.getElementById('startBtn');
         
         let currentNumber = 1;
+        let targetCount = 6; // ターゲットにする数字の総数
         let isGameOver = false;
         let canClick = false; 
-        let hideTimeout = null; // タイマーキャンセル用
+        let hideTimeout = null;
 
-        // スライダーを動かしたときにリアルタイムで数字を変える
+        // 時間スライダーのリアルタイム反映
         timeLimitInput.addEventListener('input', () => {
             timeValue.textContent = parseFloat(timeLimitInput.value).toFixed(1);
         });
 
+        // 💡 個数スライダーのリアルタイム反映
+        countLimitInput.addEventListener('input', () => {
+            countValue.textContent = countLimitInput.value;
+        });
+
         function initGame() {
-            // 前回のタイマーが動いてたらクリアする
             if (hideTimeout) clearTimeout(hideTimeout);
 
             currentNumber = 1;
@@ -215,11 +243,14 @@
             canClick = false; 
             
             const chosenTime = parseFloat(timeLimitInput.value).toFixed(1);
+            targetCount = parseInt(countLimitInput.value); // 選択された個数を取得
+            
             statusText.textContent = `場所を覚えろ！(${chosenTime}秒間)`;
             statusText.style.color = "#e67e22";
             
-            // ゲーム中はスライダーとボタンの設定を変えられないようにする
+            // ゲーム中は設定をロック
             timeLimitInput.disabled = true;
+            countLimitInput.disabled = true;
             startBtn.textContent = "リセットして最初から";
 
             overlay.classList.remove('show');
@@ -233,8 +264,9 @@
                 [positions[i], positions[j]] = [positions[j], positions[i]];
             }
 
+            // 💡 選択された個数分だけ1からの数字を配置する
             const gridData = Array(25).fill(null);
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < targetCount; i++) {
                 gridData[positions[i]] = i + 1;
             }
 
@@ -257,10 +289,10 @@
                         cell.textContent = realNum; 
                         currentNumber++;
                         
-                        if (currentNumber > 10) {
+                        // 💡 10固定ではなく、設定した最大数を超えたらクリアに変更
+                        if (currentNumber > targetCount) {
                             isGameOver = true;
-                            timeLimitInput.disabled = false; // スライダー復活
-                            startBtn.textContent = "もう一度挑戦！";
+                            unlockConfig();
                             statusText.textContent = "クリア！神の記憶力！";
                             statusText.style.color = "#2ecc71";
                             showResult('circle', '○');
@@ -272,14 +304,11 @@
                         cell.textContent = realNum ? realNum : ''; 
                         isGameOver = true;
                         
-                        timeLimitInput.disabled = false; // スライダー復活
-                        startBtn.textContent = "もう一度挑戦！";
+                        unlockConfig();
                         statusText.textContent = `ゲームオーバー！次は ${currentNumber} だったよ`;
                         statusText.style.color = "#e74c3c";
                         
-                        // 💡【ここが追加】間違えた瞬間に、他のすべての正解マスを強制オープン！
                         revealAllAnswers();
-                        
                         showResult('cross', '×');
                     }
                 });
@@ -287,7 +316,6 @@
                 grid.appendChild(cell);
             });
 
-            // 💡 スライダーで設定された秒数（ミリ秒に変換）だけ表示する
             hideTimeout = setTimeout(() => {
                 if (isGameOver) return; 
                 
@@ -300,17 +328,22 @@
                 });
                 
                 canClick = true; 
-                statusText.textContent = "1から順番に隠れた数字を叩け！";
+                statusText.textContent = `1から順番に隠れた数字を叩け！(1〜${targetCount})`;
                 statusText.style.color = "#666";
             }, chosenTime * 1000);
         }
 
-        // 💡 失敗したときにすべての「？」を暴く関数
+        // ロック解除用共通関数
+        function unlockConfig() {
+            timeLimitInput.disabled = false;
+            countLimitInput.disabled = false;
+            startBtn.textContent = "もう一度挑戦！";
+        }
+
         function revealAllAnswers() {
             const cells = grid.querySelectorAll('.cell');
             cells.forEach(cell => {
                 const realNum = cell.dataset.realNum;
-                // まだクリックされてなくて、数字が隠れているマスを全部オープン
                 if (realNum && !cell.classList.contains('correct') && !cell.classList.contains('wrong')) {
                     cell.classList.remove('masked');
                     cell.classList.add('revealed');
@@ -324,8 +357,6 @@
             hugeSymbol.textContent = text;
             overlay.classList.add('show');
         }
-
-        // 初回は説明を出すために自動スタートはせず、ボタンを「スタート」にして待機
     </script>
 </body>
 </html>
