@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文化祭限定！Touch the Numbers</title>
+    <title>文化祭限定！Memory Touch 10</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -25,6 +25,7 @@
             font-size: 16px;
             color: #666;
             margin-bottom: 20px;
+            font-weight: bold;
         }
         .grid-container {
             position: relative;
@@ -53,13 +54,18 @@
         .cell:active {
             transform: scale(0.95);
         }
-        /* 正解の緑色 */
+        /* ？マークのときのちょっとミステリアスな色 */
+        .cell.masked {
+            background-color: #e0e0e0;
+            color: #7f8c8d;
+        }
+        /* 正解の緑色（開く） */
         .cell.correct {
             background-color: #2ecc71 !important;
             color: white !important;
             border-color: #27ae60 !important;
         }
-        /* 間違いの赤色 */
+        /* 間違いの赤色（開く） */
         .cell.wrong {
             background-color: #e74c3c !important;
             color: white !important;
@@ -116,8 +122,8 @@
 </head>
 <body>
 
-    <h1>Touch the Numbers</h1>
-    <div class="instruction">1から10までの数字を順番に叩け！</div>
+    <h1>Memory Touch 10</h1>
+    <div class="instruction" id="statusText">場所を覚えろ！(2秒間)</div>
     
     <div class="grid-container">
         <div class="grid" id="grid"></div>
@@ -128,81 +134,115 @@
     </div>
 
     <div class="btn-container">
-        <button onclick="initGame()">もう一度挑戦！</button>
+        <button onclick="initGame()">スタート / リセット</button>
     </div>
 
     <script>
         const grid = document.getElementById('grid');
         const overlay = document.getElementById('overlay');
         const hugeSymbol = document.getElementById('hugeSymbol');
+        const statusText = document.getElementById('statusText');
         
         let currentNumber = 1;
         let isGameOver = false;
+        let canClick = false; // 覚える時間（2秒）はクリックできないようにするフラグ
 
         function initGame() {
-            // ゲームの状態をリセット
             currentNumber = 1;
             isGameOver = false;
+            canClick = false; 
+            statusText.textContent = "場所を覚えろ！(2秒間)";
+            statusText.style.color = "#e67e22"; // オレンジ色で警告っぽく
+            
             overlay.classList.remove('show');
             hugeSymbol.className = 'huge-symbol';
             hugeSymbol.textContent = '';
-            grid.innerHTML = ''; // マス目を一回全部消す
+            grid.innerHTML = ''; 
 
-            // 0〜24の場所（インデックス）が入った配列を作る
+            // 位置シャッフル
             const positions = Array.from({length: 25}, (_, i) => i);
-            
-            // 配列をランダムにシャッフル（数字を置く場所をバラバラにする）
             for (let i = positions.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [positions[i], positions[j]] = [positions[j], positions[i]];
             }
 
-            // 25マス分のデータ枠を用意して、シャッフルした場所の先頭10個に1〜10を配置
             const gridData = Array(25).fill(null);
             for (let i = 0; i < 10; i++) {
                 gridData[positions[i]] = i + 1;
             }
 
-            // 実際に画面に25マスのボタンを作って並べる
+            // マス目の生成
             gridData.forEach((num) => {
                 const cell = document.createElement('div');
                 cell.classList.add('cell');
-                cell.textContent = num ? num : ''; // 数字が割り当てられてないマスは空欄
+                cell.textContent = num ? num : ''; 
                 
-                // マスが押されたときの処理
-                cell.addEventListener('click', () => {
-                    if (isGameOver) return; // ゲームが終わってたら何もしない
+                // 正解判定用に、本来の数字を隠しデータとして持たせる
+                cell.dataset.realNum = num ? num : '';
 
-                    if (num === currentNumber) {
-                        // 【正解】順番通りの数字を押したとき
+                cell.addEventListener('click', () => {
+                    // ゲーム終了後、または2秒の記憶時間中はクリックを無視
+                    if (isGameOver || !canClick) return; 
+
+                    // すでに正解して開いているマスは連続クリック防止
+                    if (cell.classList.contains('correct')) return;
+
+                    const realNum = cell.dataset.realNum ? parseInt(cell.dataset.realNum) : null;
+
+                    if (realNum === currentNumber) {
+                        // 【正解】
+                        cell.classList.remove('masked');
                         cell.classList.add('correct');
+                        cell.textContent = realNum; // 数字を開く
                         currentNumber++;
                         
                         if (currentNumber > 10) {
-                            // 10まで全部押し終わったらクリア！
                             isGameOver = true;
+                            statusText.textContent = "クリア！お見事！";
+                            statusText.style.color = "#2ecc71";
                             showResult('circle', '○');
                         }
                     } else {
-                        // 【不正解】違う数字、または空欄を押したとき
+                        // 【不正解】
+                        cell.classList.remove('masked');
                         cell.classList.add('wrong');
+                        cell.textContent = realNum ? realNum : ''; // 違った場所の数字（または空欄）を開く
                         isGameOver = true;
+                        statusText.textContent = `ゲームオーバー！次は ${currentNumber} だったよ`;
+                        statusText.style.color = "#e74c3c";
                         showResult('cross', '×');
                     }
                 });
 
                 grid.appendChild(cell);
             });
+
+            // 💡 【ここがポイント】2.0秒（2000ミリ秒）後に数字を「？」で隠す
+            setTimeout(() => {
+                if (isGameOver) return; // 途中でリセットされたら何もしない
+                
+                const cells = grid.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    if (cell.dataset.realNum) {
+                        cell.textContent = '？'; // 数字があった場所を「？」にする
+                        cell.classList.add('masked');
+                    }
+                });
+                
+                canClick = true; // プレイヤーが叩けるようにする
+                statusText.textContent = "1から順番に隠れた数字を叩け！";
+                statusText.style.color = "#666";
+            }, 2000);
         }
 
-        // 巨大な○か×を表示する関数
+        // 巨大判定マーク
         function showResult(type, text) {
             hugeSymbol.classList.add(type);
             hugeSymbol.textContent = text;
             overlay.classList.add('show');
         }
 
-        // ページを開いた瞬間にゲームをスタート
+        // ページを読み込んだら自動で1回目をスタート
         initGame();
     </script>
 </body>
