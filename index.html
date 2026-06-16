@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文化祭限定！Touch the Numbers</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            overflow: hidden;
+        }
+        h1 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 28px;
+        }
+        .instruction {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .grid-container {
+            position: relative;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 75px);
+            grid-template-rows: repeat(5, 75px);
+            gap: 10px;
+        }
+        .cell {
+            background-color: #fff;
+            border: 3px solid #ccc;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.1s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .cell:active {
+            transform: scale(0.95);
+        }
+        /* 正解の緑色 */
+        .cell.correct {
+            background-color: #2ecc71 !important;
+            color: white !important;
+            border-color: #27ae60 !important;
+        }
+        /* 間違いの赤色 */
+        .cell.wrong {
+            background-color: #e74c3c !important;
+            color: white !important;
+            border-color: #c0392b !important;
+        }
+        /* 画面いっぱいに表示する巨大な○×用レイヤー */
+        .result-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(240, 242, 245, 0.85);
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
+            border-radius: 15px;
+        }
+        .result-overlay.show {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+        .huge-symbol {
+            font-size: 200px;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .huge-symbol.circle { color: #2ecc71; }
+        .huge-symbol.cross { color: #e74c3c; }
+
+        .btn-container {
+            margin-top: 25px;
+        }
+        button {
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #2980b9; }
+    </style>
+</head>
+<body>
+
+    <h1>Touch the Numbers</h1>
+    <div class="instruction">1から10までの数字を順番に叩け！</div>
+    
+    <div class="grid-container">
+        <div class="grid" id="grid"></div>
+        
+        <div class="result-overlay" id="overlay">
+            <div class="huge-symbol" id="hugeSymbol"></div>
+        </div>
+    </div>
+
+    <div class="btn-container">
+        <button onclick="initGame()">もう一度挑戦！</button>
+    </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const overlay = document.getElementById('overlay');
+        const hugeSymbol = document.getElementById('hugeSymbol');
+        
+        let currentNumber = 1;
+        let isGameOver = false;
+
+        function initGame() {
+            // ゲームの状態をリセット
+            currentNumber = 1;
+            isGameOver = false;
+            overlay.classList.remove('show');
+            hugeSymbol.className = 'huge-symbol';
+            hugeSymbol.textContent = '';
+            grid.innerHTML = ''; // マス目を一回全部消す
+
+            // 0〜24の場所（インデックス）が入った配列を作る
+            const positions = Array.from({length: 25}, (_, i) => i);
+            
+            // 配列をランダムにシャッフル（数字を置く場所をバラバラにする）
+            for (let i = positions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [positions[i], positions[j]] = [positions[j], positions[i]];
+            }
+
+            // 25マス分のデータ枠を用意して、シャッフルした場所の先頭10個に1〜10を配置
+            const gridData = Array(25).fill(null);
+            for (let i = 0; i < 10; i++) {
+                gridData[positions[i]] = i + 1;
+            }
+
+            // 実際に画面に25マスのボタンを作って並べる
+            gridData.forEach((num) => {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.textContent = num ? num : ''; // 数字が割り当てられてないマスは空欄
+                
+                // マスが押されたときの処理
+                cell.addEventListener('click', () => {
+                    if (isGameOver) return; // ゲームが終わってたら何もしない
+
+                    if (num === currentNumber) {
+                        // 【正解】順番通りの数字を押したとき
+                        cell.classList.add('correct');
+                        currentNumber++;
+                        
+                        if (currentNumber > 10) {
+                            // 10まで全部押し終わったらクリア！
+                            isGameOver = true;
+                            showResult('circle', '○');
+                        }
+                    } else {
+                        // 【不正解】違う数字、または空欄を押したとき
+                        cell.classList.add('wrong');
+                        isGameOver = true;
+                        showResult('cross', '×');
+                    }
+                });
+
+                grid.appendChild(cell);
+            });
+        }
+
+        // 巨大な○か×を表示する関数
+        function showResult(type, text) {
+            hugeSymbol.classList.add(type);
+            hugeSymbol.textContent = text;
+            overlay.classList.add('show');
+        }
+
+        // ページを開いた瞬間にゲームをスタート
+        initGame();
+    </script>
+</body>
+</html>
