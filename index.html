@@ -3,165 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文化祭限定！Memory Touch</title>
+    <title>Memory Touch</title>
     <style>
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f2f5;
-            overflow: hidden;
-        }
-        h1 {
-            margin-bottom: 5px;
-            color: #333;
-            font-size: 28px;
-        }
-        .instruction {
-            font-size: 16px;
-            color: #666;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f0f2f5; overflow: hidden; }
+        h1 { margin-bottom: 5px; color: #333; font-size: 28px; }
+        .instruction { font-size: 16px; color: #666; margin-bottom: 15px; font-weight: bold; }
         
-        /* ⚙️ 設定パネルのスタイル調整 */
-        .config-panel {
-            background-color: #fff;
-            padding: 15px 25px;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .config-row {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        }
-        .config-label {
-            font-size: 14px;
-            color: #333;
-            font-weight: bold;
-        }
-        .recommend {
-            color: #e74c3c;
-            font-size: 12px;
-            font-weight: bold;
-            margin-left: 5px;
-        }
-        .slider-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 12px;
-            color: #777;
-        }
-        input[type="range"] {
-            width: 150px;
-            cursor: pointer;
-        }
+        .config-panel { background-color: #fff; padding: 15px 25px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .config-row { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .config-label { font-size: 14px; color: #333; font-weight: bold; }
+        .recommend { color: #e74c3c; font-size: 12px; font-weight: bold; margin-left: 5px; }
+        
+        /* スライダーと数値入力のスタイル */
+        .input-group { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #777; }
+        input[type="range"] { width: 150px; cursor: pointer; }
+        input[type="number"] { width: 50px; padding: 2px 5px; text-align: center; }
 
-        .grid-container {
-            position: relative;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(5, 75px);
-            grid-template-rows: repeat(5, 75px);
-            gap: 10px;
-        }
-        .cell {
-            background-color: #fff;
-            border: 3px solid #ccc;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            font-weight: bold;
-            color: #333;
-            cursor: pointer;
-            user-select: none;
-            transition: all 0.1s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        .cell:active {
-            transform: scale(0.95);
-        }
-        .cell.masked {
-            background-color: #e0e0e0;
-            color: #7f8c8d;
-        }
-        .cell.correct {
-            background-color: #2ecc71 !important;
-            color: white !important;
-            border-color: #27ae60 !important;
-        }
-        .cell.wrong {
-            background-color: #e74c3c !important;
-            color: white !important;
-            border-color: #c0392b !important;
-        }
-        .cell.revealed {
-            background-color: #fff !important;
-            color: #34495e !important;
-            border-color: #95a5a6 !important;
-        }
+        .grid-container { position: relative; }
+        .grid { display: grid; grid-template-columns: repeat(5, 75px); grid-template-rows: repeat(5, 75px); gap: 10px; }
+        .cell { background-color: #fff; border: 3px solid #ccc; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; color: #333; cursor: pointer; user-select: none; transition: all 0.1s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .cell:active { transform: scale(0.95); }
+        .cell.masked { background-color: #e0e0e0; color: #7f8c8d; }
+        .cell.correct { background-color: #2ecc71 !important; color: white !important; border-color: #27ae60 !important; }
+        .cell.wrong { background-color: #e74c3c !important; color: white !important; border-color: #c0392b !important; }
+        .cell.revealed { background-color: #fff !important; color: #34495e !important; border-color: #95a5a6 !important; }
 
-        /* 画面いっぱいに表示する巨大な○×用レイヤー */
-        .result-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(240, 242, 245, 0.6);
-            pointer-events: none;
-            opacity: 0;
-            transform: scale(0.5);
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 10;
-            border-radius: 15px;
-        }
-        .result-overlay.show {
-            opacity: 1;
-            transform: scale(1);
-            pointer-events: auto;
-        }
-        .huge-symbol {
-            font-size: 240px;
-            font-weight: bold;
-            line-height: 1;
-            text-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
+        .result-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background-color: rgba(240, 242, 245, 0.6); pointer-events: none; opacity: 0; transform: scale(0.5); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 10; border-radius: 15px; }
+        .result-overlay.show { opacity: 1; transform: scale(1); pointer-events: auto; }
+        .huge-symbol { font-size: 240px; font-weight: bold; line-height: 1; text-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .huge-symbol.circle { color: rgba(46, 204, 113, 0.9); }
         .huge-symbol.cross { color: rgba(231, 76, 60, 0.9); }
 
-        .btn-container {
-            margin-top: 25px;
-        }
-        button {
-            padding: 12px 30px;
-            font-size: 18px;
-            font-weight: bold;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: background 0.2s;
-        }
+        .btn-container { margin-top: 25px; }
+        button { padding: 12px 30px; font-size: 18px; font-weight: bold; background-color: #3498db; color: white; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background 0.2s; }
         button:hover { background-color: #2980b9; }
     </style>
 </head>
@@ -172,33 +46,28 @@
     
     <div class="config-panel">
         <div class="config-row">
-            <div class="config-label">
-                表示時間: <span id="timeValue">3.0</span> 秒
-                <span class="recommend">（おすすめは3.0秒！）</span>
-            </div>
-            <div class="slider-container">
-                <span>0.1秒</span>
+            <div class="config-label">表示時間 (秒) <span class="recommend">(おすすめ: 3.0)</span></div>
+            <div class="input-group">
+                <span>0.1</span>
                 <input type="range" id="timeLimit" min="0.1" max="10.0" step="0.1" value="3.0">
-                <span>10.0秒</span>
+                <input type="number" id="timeNumber" value="3.0" min="0.1" max="10.0" step="0.1">
+                <span>10.0</span>
             </div>
         </div>
 
         <div class="config-row">
-            <div class="config-label">
-                数字の数: <span id="countValue">6</span> 個
-                <span class="recommend">（おすすめは6！）</span>
-            </div>
-            <div class="slider-container">
-                <span>1個</span>
+            <div class="config-label">数字の数 (個) <span class="recommend">(おすすめ: 6)</span></div>
+            <div class="input-group">
+                <span>1</span>
                 <input type="range" id="countLimit" min="1" max="10" step="1" value="6">
-                <span>10個</span>
+                <input type="number" id="countNumber" value="6" min="1" max="10">
+                <span>10</span>
             </div>
         </div>
     </div>
     
     <div class="grid-container">
         <div class="grid" id="grid"></div>
-        
         <div class="result-overlay" id="overlay">
             <div class="huge-symbol" id="hugeSymbol"></div>
         </div>
@@ -209,152 +78,85 @@
     </div>
 
     <script>
+        const timeLimit = document.getElementById('timeLimit');
+        const timeNumber = document.getElementById('timeNumber');
+        const countLimit = document.getElementById('countLimit');
+        const countNumber = document.getElementById('countNumber');
+        
+        // 同期関数：バーと入力ボックスを繋ぐ
+        function syncInputs(slider, number) {
+            slider.addEventListener('input', () => { number.value = slider.value; });
+            number.addEventListener('input', () => { slider.value = number.value; });
+        }
+        syncInputs(timeLimit, timeNumber);
+        syncInputs(countLimit, countNumber);
+
         const grid = document.getElementById('grid');
         const overlay = document.getElementById('overlay');
         const hugeSymbol = document.getElementById('hugeSymbol');
         const statusText = document.getElementById('statusText');
-        const timeLimitInput = document.getElementById('timeLimit');
-        const timeValue = document.getElementById('timeValue');
-        const countLimitInput = document.getElementById('countLimit');
-        const countValue = document.getElementById('countValue');
         const startBtn = document.getElementById('startBtn');
         
-        let currentNumber = 1;
-        let targetCount = 6; // ターゲットにする数字の総数
-        let isGameOver = false;
-        let canClick = false; 
-        let hideTimeout = null;
-
-        // 時間スライダーのリアルタイム反映
-        timeLimitInput.addEventListener('input', () => {
-            timeValue.textContent = parseFloat(timeLimitInput.value).toFixed(1);
-        });
-
-        // 💡 個数スライダーのリアルタイム反映
-        countLimitInput.addEventListener('input', () => {
-            countValue.textContent = countLimitInput.value;
-        });
+        let currentNumber = 1, isGameOver = false, canClick = false, hideTimeout = null;
 
         function initGame() {
             if (hideTimeout) clearTimeout(hideTimeout);
-
-            currentNumber = 1;
-            isGameOver = false;
-            canClick = false; 
+            currentNumber = 1; isGameOver = false; canClick = false;
             
-            const chosenTime = parseFloat(timeLimitInput.value).toFixed(1);
-            targetCount = parseInt(countLimitInput.value); // 選択された個数を取得
+            const chosenTime = parseFloat(timeNumber.value);
+            const targetCount = parseInt(countNumber.value);
             
-            statusText.textContent = `場所を覚えろ！(${chosenTime}秒間)`;
+            statusText.textContent = `場所を覚えろ！(${chosenTime.toFixed(1)}秒間)`;
             statusText.style.color = "#e67e22";
             
-            // ゲーム中は設定をロック
-            timeLimitInput.disabled = true;
-            countLimitInput.disabled = true;
+            timeLimit.disabled = timeNumber.disabled = countLimit.disabled = countNumber.disabled = true;
             startBtn.textContent = "リセットして最初から";
 
             overlay.classList.remove('show');
-            hugeSymbol.className = 'huge-symbol';
-            hugeSymbol.textContent = '';
             grid.innerHTML = ''; 
 
-            const positions = Array.from({length: 25}, (_, i) => i);
-            for (let i = positions.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [positions[i], positions[j]] = [positions[j], positions[i]];
-            }
-
-            // 💡 選択された個数分だけ1からの数字を配置する
+            const positions = Array.from({length: 25}, (_, i) => i).sort(() => Math.random() - 0.5);
             const gridData = Array(25).fill(null);
-            for (let i = 0; i < targetCount; i++) {
-                gridData[positions[i]] = i + 1;
-            }
+            for (let i = 0; i < targetCount; i++) gridData[positions[i]] = i + 1;
 
             gridData.forEach((num) => {
                 const cell = document.createElement('div');
-                cell.classList.add('cell');
-                cell.textContent = num ? num : ''; 
-                cell.dataset.realNum = num ? num : '';
-
-                cell.addEventListener('click', () => {
-                    if (isGameOver || !canClick) return; 
-                    if (cell.classList.contains('correct')) return;
-
-                    const realNum = cell.dataset.realNum ? parseInt(cell.dataset.realNum) : null;
-
-                    if (realNum === currentNumber) {
-                        // 【正解】
-                        cell.classList.remove('masked');
-                        cell.classList.add('correct');
-                        cell.textContent = realNum; 
-                        currentNumber++;
-                        
-                        // 💡 10固定ではなく、設定した最大数を超えたらクリアに変更
-                        if (currentNumber > targetCount) {
-                            isGameOver = true;
-                            unlockConfig();
-                            statusText.textContent = "クリア！神の記憶力！";
-                            statusText.style.color = "#2ecc71";
-                            showResult('circle', '○');
-                        }
+                cell.className = 'cell';
+                cell.textContent = num || '';
+                cell.dataset.real = num || '';
+                cell.onclick = () => {
+                    if (isGameOver || !canClick || cell.classList.contains('correct')) return;
+                    if (cell.dataset.real == currentNumber) {
+                        cell.classList.add('correct'); cell.textContent = currentNumber++;
+                        if (currentNumber > targetCount) finishGame(true);
                     } else {
-                        // 【不正解】
-                        cell.classList.remove('masked');
                         cell.classList.add('wrong');
-                        cell.textContent = realNum ? realNum : ''; 
-                        isGameOver = true;
-                        
-                        unlockConfig();
-                        statusText.textContent = `ゲームオーバー！次は ${currentNumber} だったよ`;
-                        statusText.style.color = "#e74c3c";
-                        
-                        revealAllAnswers();
-                        showResult('cross', '×');
+                        finishGame(false);
                     }
-                });
-
+                };
                 grid.appendChild(cell);
             });
 
             hideTimeout = setTimeout(() => {
                 if (isGameOver) return; 
-                
-                const cells = grid.querySelectorAll('.cell');
-                cells.forEach(cell => {
-                    if (cell.dataset.realNum) {
-                        cell.textContent = '？'; 
-                        cell.classList.add('masked');
-                    }
-                });
-                
-                canClick = true; 
-                statusText.textContent = `1から順番に隠れた数字を叩け！(1〜${targetCount})`;
+                grid.querySelectorAll('.cell').forEach(c => { if(c.dataset.real) { c.textContent='？'; c.classList.add('masked'); }});
+                canClick = true;
+                statusText.textContent = `1から順番に叩け！(1〜${targetCount})`;
                 statusText.style.color = "#666";
             }, chosenTime * 1000);
         }
 
-        // ロック解除用共通関数
-        function unlockConfig() {
-            timeLimitInput.disabled = false;
-            countLimitInput.disabled = false;
+        function finishGame(isWin) {
+            isGameOver = true;
+            timeLimit.disabled = timeNumber.disabled = countLimit.disabled = countNumber.disabled = false;
             startBtn.textContent = "もう一度挑戦！";
-        }
-
-        function revealAllAnswers() {
-            const cells = grid.querySelectorAll('.cell');
-            cells.forEach(cell => {
-                const realNum = cell.dataset.realNum;
-                if (realNum && !cell.classList.contains('correct') && !cell.classList.contains('wrong')) {
-                    cell.classList.remove('masked');
-                    cell.classList.add('revealed');
-                    cell.textContent = realNum;
-                }
-            });
-        }
-
-        function showResult(type, text) {
-            hugeSymbol.classList.add(type);
-            hugeSymbol.textContent = text;
+            statusText.textContent = isWin ? "クリア！神の記憶力！" : "ゲームオーバー！";
+            statusText.style.color = isWin ? "#2ecc71" : "#e74c3c";
+            if (!isWin) {
+                grid.querySelectorAll('.cell').forEach(c => { if(c.dataset.real) { c.classList.remove('masked'); c.classList.add('revealed'); c.textContent = c.dataset.real; }});
+            }
+            hugeSymbol.className = 'huge-symbol ' + (isWin ? 'circle' : 'cross');
+            hugeSymbol.textContent = isWin ? '○' : '×';
             overlay.classList.add('show');
         }
     </script>
